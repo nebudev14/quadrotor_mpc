@@ -48,7 +48,7 @@ const DO_PRECONDITIONING: bool = false;
 // ---Public Constants-----------------------------------------------------------------------------------
 
 /// Number of decision variables
-pub const QUADROTOR_MPC_NUM_DECISION_VARIABLES: usize = 40;
+pub const QUADROTOR_MPC_NUM_DECISION_VARIABLES: usize = 20;
 
 /// Number of parameters
 pub const QUADROTOR_MPC_NUM_PARAMETERS: usize = 26;
@@ -65,8 +65,8 @@ pub const QUADROTOR_MPC_N2: usize = 0;
 
 
 
-const CONSTRAINTS_XMIN :Option<&[f64]> = Some(&[0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,0.0,-1.0,-1.0,-1.0,]);
-const CONSTRAINTS_XMAX :Option<&[f64]> = Some(&[20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,20.0,1.0,1.0,1.0,]);
+const CONSTRAINTS_XMIN :Option<&[f64]> = Some(&[0.0,-5.0,-5.0,-5.0,0.0,-5.0,-5.0,-5.0,0.0,-5.0,-5.0,-5.0,0.0,-5.0,-5.0,-5.0,0.0,-5.0,-5.0,-5.0,]);
+const CONSTRAINTS_XMAX :Option<&[f64]> = Some(&[60.0,5.0,5.0,5.0,60.0,5.0,5.0,5.0,60.0,5.0,5.0,5.0,60.0,5.0,5.0,5.0,60.0,5.0,5.0,5.0,]);
 
 
 

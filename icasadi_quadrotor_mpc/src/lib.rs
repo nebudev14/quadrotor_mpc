@@ -18,7 +18,7 @@
 const NUM_STATIC_PARAMETERS: usize = 26;
 
 /// Number of decision variables
-const NUM_DECISION_VARIABLES: usize = 40;
+const NUM_DECISION_VARIABLES: usize = 20;
 
 /// Number of ALM-type constraints (dimension of F1, i.e., n1)
 const NUM_CONSTRAINTS_TYPE_ALM: usize = 0;

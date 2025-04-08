@@ -18,7 +18,7 @@
  *   + version: 0.0.0
  *   + licence: MIT
  * + Problem
- *   + vars: 40
+ *   + vars: 20
  *   + parameters: 26
  *   + n1: 0
  *   + n2: 0
@@ -37,7 +37,7 @@
 #include "casadi_memory.h"
 
 /* Number of input variables */
-#define NU_QUADROTOR_MPC 40
+#define NU_QUADROTOR_MPC 20
 
 /* Number of static parameters */
 #define NP_QUADROTOR_MPC 26

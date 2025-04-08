@@ -5,49 +5,6 @@ use peng_quad::*;
 fn main() -> Result<(), SimulationError> {
 
     let mut cache = quadrotor_mpc::initialize_solver();
-    let x0: Vec<f64> = vec![
-        1.5,    // x position (m)
-        -0.8,   // y position (m)
-        2.0,    // z position (m) - altitude
-        0.5,    // Vx velocity (m/s)
-        -0.3,   // Vy velocity (m/s)
-        0.1,    // Vz velocity (m/s)
-        0.98,   // w (quaternion scalar part) - near hover orientation
-        0.01,   // i (quaternion vector part) - slight roll
-        0.02,   // j (quaternion vector part) - slight pitch
-        -0.01,  // k (quaternion vector part) - slight yaw
-        0.05,   // omegax (angular velocity) (rad/s)
-        -0.08,  // omegay (angular velocity) (rad/s)
-        0.02    // omegaz (angular velocity) (rad/s)
-    ];
-    
-    let x_desired: Vec<f64> = vec![
-        3.0,    // x position (m) - move forward
-        1.5,    // y position (m) - move right
-        2.5,    // z position (m) - slightly higher altitude
-        0.0,    // Vx velocity (m/s) - zero at target
-        0.0,    // Vy velocity (m/s) - zero at target
-        0.0,    // Vz velocity (m/s) - zero at target
-        1.0,    // w (quaternion scalar part) - perfect hover orientation
-        0.0,    // i (quaternion vector part) - no roll
-        0.0,    // j (quaternion vector part) - no pitch
-        0.0,    // k (quaternion vector part) - no yaw
-        0.0,    // omegax (angular velocity) (rad/s) - no rotation
-        0.0,    // omegay (angular velocity) (rad/s) - no rotation
-        0.0     // omegaz (angular velocity) (rad/s) - no rotation
-    ];
-
-    // Concatenate x0 and x_desired into a single parameter vector p
-    let mut p = Vec::with_capacity(x0.len() + x_desired.len());
-    p.extend_from_slice(&x0);
-    p.extend_from_slice(&x_desired);
-    
-    let mut guess = vec![0.0; 40];
-
-    let result = quadrotor_mpc::solve(&p, &mut cache, &mut guess, &None, &None);
-
-    println!("Result: {:?}", result.unwrap());
-    println!("Control inputs: {:?}", guess);
 
     let mut config_str = "config/quad.yaml";
     let args: Vec<String> = std::env::args().collect();
@@ -176,20 +133,92 @@ fn main() -> Result<(), SimulationError> {
             &quad.velocity,
             quad.time_step,
         );
+
         let torque = controller.compute_attitude_control(
             &calculated_desired_orientation,
             &quad.orientation,
             &quad.angular_velocity,
             quad.time_step,
         );
+        
+        let curr_angles = quad.orientation.euler_angles();
+        let desired_angles = calculated_desired_orientation.euler_angles();
+
+        let omega_x = (desired_angles.0 - curr_angles.0).sin().atan2(
+            (desired_angles.0 - curr_angles.0).cos()
+        ) / 0.005;
+
+        let omega_y = (desired_angles.1 - curr_angles.1).sin().atan2(
+            (desired_angles.1 - curr_angles.1).cos()
+        ) / 0.005;
+
+        let omega_z = (desired_angles.2 - curr_angles.2).sin().atan2(
+            (desired_angles.2 - curr_angles.2).cos()
+        ) / 0.005;
+
+        let p: Vec<f64> = vec![
+            quad.position.x,    
+            quad.position.y,    
+            quad.position.z,   
+            quad.velocity.x,    
+            quad.velocity.y,    
+            quad.velocity.z,    
+            quad.orientation.w,   
+            quad.orientation.i,    
+            quad.orientation.j,    
+            quad.orientation.k,  
+            quad.angular_velocity.x,
+            quad.angular_velocity.y,
+            quad.angular_velocity.z,
+
+            desired_position.x,
+            desired_position.y,
+            desired_position.z,
+            desired_velocity.x,
+            desired_velocity.y,
+            desired_velocity.z,
+            calculated_desired_orientation.w,
+            calculated_desired_orientation.i,
+            calculated_desired_orientation.j,
+            calculated_desired_orientation.k,
+          
+            omega_x,
+            omega_y,
+            omega_z,
+
+        ].iter().map(|&v| v as f64).collect();
+
+        let mut guess: Vec<f64> = vec![0.0; 20];
+
+        let result = quadrotor_mpc::solve(&p, &mut cache, &mut guess, &None, &None);
+
+        // println!("Result: {:?}", result.unwrap());
+        // println!("Control inputs: {:?}", guess);
+
+        let thrust_mpc = (guess[0]) as f32;
+        let torque_mpc = Vector3::new(guess[1] as f32, guess[2] as f32, guess[3] as f32);
+
+
+        println!("--------------------------------");
+        println!("Thrust: {:?}", thrust);
+        println!("Torque: {:?}", torque);
+        println!("Thrust MPC: {:?}", thrust_mpc);
+        println!("Torque MPC: {:?}", torque_mpc);
+        println!("Position: {:?}", quad.position);
+        println!("Desired Position: {:?}", desired_position);
+        println!("--------------------------------");
+  
+        println!("omega_z: {:?}", omega_z);
+
+
         if i % (config.simulation.simulation_frequency / config.simulation.control_frequency) == 0 {
             if config.use_rk4_for_dynamics_control {
-                quad.update_dynamics_with_controls_rk4(thrust, &torque);
+                quad.update_dynamics_with_controls_rk4(thrust_mpc, &torque_mpc);
             } else {
-                quad.update_dynamics_with_controls_euler(thrust, &torque);
+                quad.update_dynamics_with_controls_euler(thrust_mpc, &torque_mpc);
             }
-            previous_thrust = thrust;
-            previous_torque = torque;
+            previous_thrust = thrust_mpc;
+            previous_torque = torque_mpc;
         } else if config.use_rk4_for_dynamics_update {
             quad.update_dynamics_with_controls_rk4(previous_thrust, &previous_torque);
         } else {
@@ -220,6 +249,8 @@ fn main() -> Result<(), SimulationError> {
                     &measured_accel,
                     &measured_gyro,
                 )?;
+
+
                 if config.render_depth {
                     log_depth_image(rec, &camera, config.use_multithreading_depth_rendering)?;
                     log_pinhole_depth(

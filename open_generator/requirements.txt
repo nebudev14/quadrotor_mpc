@@ -1,0 +1,10 @@
+casadi
+decorator
+Jinja2
+MarkupSafe
+numpy
+opengen
+py
+pyyaml
+retry
+setuptools
